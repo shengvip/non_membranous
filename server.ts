@@ -183,6 +183,34 @@ function generateMetricsForModel(model: string) {
   const generateMetrics = (baseAcc: number) => {
     const variance = 0.05;
     const acc = baseAcc + (Math.random() * variance - variance / 2);
+    
+    // Generate mock ROC curve data
+    const rocData = [];
+    for (let i = 0; i <= 100; i += 5) {
+      const fpr = i / 100;
+      // Simple curve: y = x^(1/k) where k depends on accuracy
+      const k = Math.max(1.1, acc * 5); 
+      const tpr = Math.pow(fpr, 1 / k);
+      rocData.push({ fpr: fpr.toFixed(2), tpr: tpr.toFixed(2) });
+    }
+
+    // Generate mock Survival curve data
+    const survivalData = [];
+    for (let i = 0; i <= 60; i += 5) {
+      const time = i;
+      // Exponential decay: e^(-lambda * t)
+      const lambda = (1.1 - acc) * 0.05;
+      const survival = Math.exp(-lambda * time);
+      survivalData.push({ time, survival: survival.toFixed(2) });
+    }
+
+    // Generate mock SHAP feature importance data
+    const features = ['Age', 'eGFR', 'Proteinuria', 'Blood Pressure', 'Hemoglobin', 'Serum Albumin', 'Cholesterol', 'Uric Acid'];
+    const shapData = features.map(feature => ({
+      feature,
+      importance: (Math.random() * 0.5 + 0.1).toFixed(3)
+    })).sort((a, b) => parseFloat(b.importance) - parseFloat(a.importance));
+
     return {
       accuracy: acc.toFixed(4),
       precision: (acc - 0.02 + Math.random() * 0.04).toFixed(4),
@@ -190,6 +218,9 @@ function generateMetricsForModel(model: string) {
       specificity: (acc + 0.01 + Math.random() * 0.03).toFixed(4),
       f1Score: (acc - 0.01 + Math.random() * 0.02).toFixed(4),
       mcc: (acc - 0.1 + Math.random() * 0.05).toFixed(4),
+      rocData,
+      survivalData,
+      shapData
     };
   };
 

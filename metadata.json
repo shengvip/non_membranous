@@ -1,5 +1,5 @@
 {
-  "name": "",
-  "description": "",
+  "name": "PMN风险分层预测",
+  "description": "科学的PMN预后预测模型，能够在疾病早期即评估患者发生蛋白尿持续、肾功能下降或进展至终末期肾病（ESKD）的风险，从而为个体化治疗与随访策略提供依据，提升疾病管理效率",
   "requestFramePermissions": []
 }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Database, Settings, BarChart2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as xlsx from 'xlsx';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 export default function Home() {
   const [data, setData] = useState<any[]>(() => {
@@ -224,6 +225,44 @@ export default function Home() {
     return maxVals;
   }, [allMetrics]);
 
+  const combinedChartData = useMemo(() => {
+    if (!allMetrics || allMetrics.length === 0) return { roc: [], survival: [] };
+
+    const rocMap = new Map();
+    const survivalMap = new Map();
+
+    allMetrics.forEach((result: any) => {
+      const modelName = result.model;
+      
+      result.metrics.rocData?.forEach((point: any) => {
+        const fpr = parseFloat(point.fpr);
+        if (!rocMap.has(fpr)) rocMap.set(fpr, { fpr });
+        rocMap.get(fpr)[modelName] = parseFloat(point.tpr);
+      });
+
+      result.metrics.survivalData?.forEach((point: any) => {
+        const time = point.time;
+        if (!survivalMap.has(time)) survivalMap.set(time, { time });
+        survivalMap.get(time)[modelName] = parseFloat(point.survival);
+      });
+    });
+
+    return {
+      roc: Array.from(rocMap.values()).sort((a, b) => a.fpr - b.fpr),
+      survival: Array.from(survivalMap.values()).sort((a, b) => a.time - b.time)
+    };
+  }, [allMetrics]);
+
+  const MODEL_COLORS: Record<string, string> = {
+    'XGBoost': '#8B2323',
+    'CatBoost': '#0ea5e9',
+    'random forest': '#10b981',
+    'decision tree': '#f59e0b',
+    'Elastic Net': '#8b5cf6',
+    'LightGBM': '#ec4899',
+    '人工神经网络': '#64748b'
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       {/* Top Banner / Logo Area */}
@@ -352,9 +391,9 @@ export default function Home() {
 
           {/* Single Model Metrics */}
           {metrics && (
-            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h3 className="text-lg font-bold text-[#8B2323] mb-4 border-l-4 border-[#8B2323] pl-3">{currentModel} 模型评估结果</h3>
-              <div className="overflow-x-auto rounded-md border border-slate-200">
+            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+              <h3 className="text-lg font-bold text-[#8B2323] mb-4 border-l-4 border-[#8B2323] pl-3">{currentModel} 模型评估与可解释性分析</h3>
+              <div className="overflow-x-auto rounded-md border border-slate-200 mb-8">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-200">
@@ -378,6 +417,68 @@ export default function Home() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                {/* ROC Curve */}
+                {metrics.rocData && (
+                  <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                    <h4 className="text-md font-bold text-slate-800 mb-4 text-center">ROC 曲线</h4>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={metrics.rocData} margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="fpr" type="number" domain={[0, 1]} tickCount={6} label={{ value: 'False Positive Rate', position: 'insideBottom', offset: -10 }} />
+                          <YAxis type="number" domain={[0, 1]} tickCount={6} label={{ value: 'True Positive Rate', angle: -90, position: 'insideLeft' }} />
+                          <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} labelFormatter={(label: any) => `FPR: ${Number(label).toFixed(3)}`} />
+                          <Line type="monotone" dataKey="tpr" stroke="#8B2323" strokeWidth={2} dot={false} activeDot={{ r: 6 }} name="ROC" />
+                          <Line type="linear" dataKey="fpr" stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Random" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Survival Curve */}
+                {metrics.survivalData && (
+                  <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                    <h4 className="text-md font-bold text-slate-800 mb-4 text-center">生存曲线 (Survival Curve)</h4>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={metrics.survivalData} margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="time" type="number" domain={[0, 'dataMax']} label={{ value: 'Time (Months)', position: 'insideBottom', offset: -10 }} />
+                          <YAxis type="number" domain={[0, 1]} tickCount={6} label={{ value: 'Survival Probability', angle: -90, position: 'insideLeft' }} />
+                          <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} labelFormatter={(label: any) => `Time: ${label}`} />
+                          <Line type="stepAfter" dataKey="survival" stroke="#0ea5e9" strokeWidth={2} dot={false} activeDot={{ r: 6 }} name="Survival" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SHAP Feature Importance */}
+              {metrics.shapData && (
+                <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
+                  <h4 className="text-md font-bold text-slate-800 mb-4 text-center">SHAP 特征重要性排序比较图</h4>
+                  <div className="h-80 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={metrics.shapData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                        <XAxis type="number" label={{ value: 'Mean |SHAP value|', position: 'insideBottom', offset: -10 }} />
+                        <YAxis dataKey="feature" type="category" tick={{ fontSize: 12 }} width={100} />
+                        <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} />
+                        <Bar dataKey="importance" fill="#8B2323" barSize={20} radius={[0, 4, 4, 0]}>
+                          {metrics.shapData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8B2323' : '#b91c1c'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -413,6 +514,50 @@ export default function Home() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Combined Charts Section */}
+              {combinedChartData.roc.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                  {/* Combined ROC Curve */}
+                  <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                    <h4 className="text-md font-bold text-slate-800 mb-4 text-center">多模型 ROC 曲线对比</h4>
+                    <div className="h-80 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={combinedChartData.roc} margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="fpr" type="number" domain={[0, 1]} tickCount={6} label={{ value: 'False Positive Rate', position: 'insideBottom', offset: -10 }} />
+                          <YAxis type="number" domain={[0, 1]} tickCount={6} label={{ value: 'True Positive Rate', angle: -90, position: 'insideLeft' }} />
+                          <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} labelFormatter={(label: any) => `FPR: ${Number(label).toFixed(3)}`} />
+                          <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+                          {allMetrics.map((result: any) => (
+                            <Line key={result.model} type="monotone" dataKey={result.model} stroke={MODEL_COLORS[result.model] || '#000'} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                          ))}
+                          <Line type="linear" dataKey="fpr" stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Random" legendType="none" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Combined Survival Curve */}
+                  <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+                    <h4 className="text-md font-bold text-slate-800 mb-4 text-center">多模型生存曲线对比</h4>
+                    <div className="h-80 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={combinedChartData.survival} margin={{ top: 5, right: 20, bottom: 15, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="time" type="number" domain={[0, 'dataMax']} label={{ value: 'Time (Months)', position: 'insideBottom', offset: -10 }} />
+                          <YAxis type="number" domain={[0, 1]} tickCount={6} label={{ value: 'Survival Probability', angle: -90, position: 'insideLeft' }} />
+                          <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} labelFormatter={(label: any) => `Time: ${label}`} />
+                          <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+                          {allMetrics.map((result: any) => (
+                            <Line key={result.model} type="stepAfter" dataKey={result.model} stroke={MODEL_COLORS[result.model] || '#000'} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
