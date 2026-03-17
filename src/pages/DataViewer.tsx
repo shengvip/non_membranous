@@ -145,14 +145,14 @@ export default function DataViewer() {
 
   if (localData.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
         <div className="text-center space-y-4">
-          <AlertCircle className="w-12 h-12 text-slate-400 mx-auto" />
-          <h2 className="text-xl font-medium text-slate-700">暂无数据</h2>
-          <p className="text-slate-500">请先在主页上传数据文件</p>
+          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto" />
+          <h2 className="text-xl font-medium text-gray-700">暂无数据</h2>
+          <p className="text-gray-500">请先在主页上传数据文件</p>
           <button 
             onClick={handleBack}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-[#8B2323] text-white rounded hover:bg-[#6b1b1b] transition-colors shadow-sm"
           >
             关闭当前页
           </button>
@@ -165,43 +165,43 @@ export default function DataViewer() {
   const displayCols = viewMode === 'missing' ? missingCols : columns;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Toolbar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-800">数据视图</h1>
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <h1 className="text-xl font-bold text-gray-800 border-l-4 border-[#8B2323] pl-3">数据视图</h1>
         
         <div className="flex items-center gap-3">
           {viewMode === 'missing' && (
             <button 
               onClick={() => setViewMode('all')}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
             >
               显示全部数据
             </button>
           )}
           <button 
             onClick={handleViewMissing}
-            className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition-colors flex items-center gap-2"
           >
             <Search className="w-4 h-4" />
             查看缺失值
           </button>
           <button 
             onClick={handleReplaceWithMean}
-            className="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[#8B2323] bg-red-50 hover:bg-red-100 border border-red-200 rounded transition-colors"
           >
             用均值填充
           </button>
           <button 
             onClick={handleReplaceWithMode}
-            className="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[#8B2323] bg-red-50 hover:bg-red-100 border border-red-200 rounded transition-colors"
           >
             用众数填充
           </button>
           <button 
             onClick={handleSaveAndReturn}
             disabled={saveStatus === 'saving'}
-            className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#8B2323] hover:bg-[#6b1b1b] rounded transition-colors flex items-center gap-2 disabled:opacity-50 shadow-sm"
           >
             <Save className="w-4 h-4" />
             {saveStatus === 'saving' ? '保存中...' : '保存并返回'}
@@ -226,42 +226,42 @@ export default function DataViewer() {
       {/* Data Table */}
       <div className="flex-1 overflow-auto p-6">
         {displayData.length === 0 ? (
-          <div className="text-center text-slate-500 mt-20">
+          <div className="text-center text-gray-500 mt-20">
             {viewMode === 'missing' ? '没有发现缺失值' : '暂无数据'}
           </div>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 border-r border-slate-200 z-10 w-16 text-center">
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 border-r border-gray-200 z-10 w-16 text-center">
                       #
                     </th>
                     {displayCols.map(col => (
-                      <th key={col} className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th key={col} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
                         {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-gray-100">
                   {displayData.map((row) => (
-                    <tr key={row._originalIndex} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-4 py-2 text-xs text-slate-400 sticky left-0 bg-white group-hover:bg-slate-50 border-r border-slate-100 text-center">
+                    <tr key={row._originalIndex} className="hover:bg-gray-50 transition-colors group">
+                      <td className="px-4 py-2 text-xs text-gray-400 sticky left-0 bg-white group-hover:bg-gray-50 border-r border-gray-100 text-center">
                         {row._originalIndex + 1}
                       </td>
                       {displayCols.map(col => {
                         const val = row[col];
                         const missing = isMissing(val);
                         return (
-                          <td key={col} className={`px-4 py-2 ${missing ? 'bg-amber-50/50' : ''}`}>
+                          <td key={col} className={`px-4 py-2 ${missing ? 'bg-red-50/50' : ''}`}>
                             <input
                               type="text"
                               value={val === null || val === undefined ? '' : val}
                               onChange={(e) => handleCellChange(row._originalIndex, col, e.target.value)}
-                              className={`w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 text-sm font-mono
-                                ${missing ? 'text-amber-600 placeholder-amber-300' : 'text-slate-700'}`}
+                              className={`w-full bg-transparent border-none focus:ring-2 focus:ring-[#8B2323] rounded px-2 py-1 text-sm font-mono
+                                ${missing ? 'text-red-600 placeholder-red-300' : 'text-gray-700'}`}
                               placeholder={missing ? 'NaN' : ''}
                             />
                           </td>

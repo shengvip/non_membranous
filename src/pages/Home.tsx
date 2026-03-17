@@ -105,7 +105,7 @@ export default function Home() {
 
   const handleShowData = () => {
     if (data.length === 0) {
-      setErrorMessage('请先上传数据');
+      setErrorMessage('暂无数据');
       return;
     }
     window.open('/data-viewer', '_blank');
@@ -225,20 +225,37 @@ export default function Home() {
   }, [allMetrics]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Top Banner / Logo Area */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center">
+          <img 
+            src="/src/top.png" 
+            alt="广西医科大学 公共卫生学院 School of Public Health Guangxi Medical University" 
+            className="h-20 object-contain"
+            onError={(e) => {
+              // Fallback if image is not uploaded yet
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', '<div class="text-3xl font-bold text-[#8B2323] tracking-wider flex flex-col"><span class="flex items-center gap-4"><span class="w-12 h-12 rounded-full bg-[#8B2323] text-white flex items-center justify-center text-xl">校徽</span>广西医科大学 <span class="text-2xl font-normal">公共卫生学院</span></span><span class="text-sm font-normal text-slate-500 mt-2">School of Public Health Guangxi Medical University</span></div>');
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto space-y-8 py-12 px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <header className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-slate-800 tracking-tight">
-            基于多源数据的肾病智能预后预测模型
+        <header className="text-center space-y-4 mb-12">
+          <h1 className="text-4xl font-bold text-[#8B2323] tracking-tight">
+            基于多源数据的肾病智能风险分层预测模型
           </h1>
-          <p className="text-slate-500">上传患者数据，使用多种机器学习算法进行预后预测与分析</p>
+          <div className="w-24 h-1 bg-[#8B2323] mx-auto rounded-full opacity-80"></div>
+          <p className="text-slate-600 text-lg">上传患者数据，使用多种机器学习算法进行肾病风险分层预测模型</p>
         </header>
 
         {/* Main Actions */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center space-y-6">
-          <div className="flex gap-4">
+        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-t-[#8B2323] border-x border-b border-slate-200 flex flex-col items-center space-y-8">
+          <div className="flex flex-wrap justify-center gap-6">
             <input 
               type="file" 
               ref={fileInputRef}
@@ -250,7 +267,7 @@ export default function Home() {
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadStatus === 'uploading'}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-8 py-3.5 bg-[#8B2323] text-white rounded-md hover:bg-[#7A1E1E] shadow-sm hover:shadow transition-all flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploadStatus === 'uploading' ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -262,14 +279,14 @@ export default function Home() {
 
             <button 
               onClick={handleShowData}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all flex items-center gap-2 font-medium"
+              className="px-8 py-3.5 bg-white text-[#8B2323] border border-[#8B2323] rounded-md hover:bg-slate-50 shadow-sm hover:shadow transition-all flex items-center gap-2 font-medium"
             >
               <Database className="w-5 h-5" />
               显示数据
             </button>
 
             <button 
-              className="px-6 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-all flex items-center gap-2 font-medium"
+              className="px-8 py-3.5 bg-slate-800 text-white rounded-md hover:bg-slate-900 shadow-sm hover:shadow transition-all flex items-center gap-2 font-medium"
             >
               <Settings className="w-5 h-5" />
               预测建模
@@ -292,22 +309,22 @@ export default function Home() {
         </div>
 
         {/* Models Section */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-indigo-600" />
+        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-t-[#8B2323] border-x border-b border-slate-200 space-y-6">
+          <h2 className="text-xl font-bold text-[#8B2323] flex items-center gap-2 border-b border-slate-100 pb-4">
+            <BarChart2 className="w-6 h-6" />
             模型训练与评估
           </h2>
           
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
             {models.map(model => (
               <button
                 key={model}
                 onClick={() => handleTrainModel(model)}
                 disabled={trainingStatus === 'training'}
-                className={`px-4 py-3 rounded-xl border transition-all text-sm font-medium
+                className={`px-4 py-3 rounded-md border transition-all text-sm font-medium shadow-sm
                   ${currentModel === model && trainingStatus === 'training' 
-                    ? 'bg-indigo-50 border-indigo-200 text-indigo-700' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/50'
+                    ? 'bg-[#8B2323]/10 border-[#8B2323]/30 text-[#8B2323]' 
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-[#8B2323]/50 hover:text-[#8B2323]'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {currentModel === model && trainingStatus === 'training' ? '训练中...' : model}
@@ -316,10 +333,10 @@ export default function Home() {
             <button
               onClick={handleCompareModels}
               disabled={trainingStatus === 'training'}
-              className={`px-4 py-3 rounded-xl border transition-all text-sm font-medium
+              className={`px-4 py-3 rounded-md border transition-all text-sm font-medium shadow-sm
                 ${currentModel === '模型对比' && trainingStatus === 'training' 
-                  ? 'bg-indigo-600 border-indigo-700 text-white' 
-                  : 'bg-slate-800 border-slate-900 text-white hover:bg-slate-700'
+                  ? 'bg-[#8B2323] border-[#8B2323] text-white' 
+                  : 'bg-[#8B2323] border-[#8B2323] text-white hover:bg-[#7A1E1E] hover:border-[#7A1E1E]'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {currentModel === '模型对比' && trainingStatus === 'training' ? '评估中...' : '模型对比'}
@@ -336,21 +353,21 @@ export default function Home() {
           {/* Single Model Metrics */}
           {metrics && (
             <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h3 className="text-lg font-medium text-slate-800 mb-4">{currentModel} 模型评估结果</h3>
-              <div className="overflow-x-auto">
+              <h3 className="text-lg font-bold text-[#8B2323] mb-4 border-l-4 border-[#8B2323] pl-3">{currentModel} 模型评估结果</h3>
+              <div className="overflow-x-auto rounded-md border border-slate-200">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-y border-slate-200">
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Accuracy</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Precision</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Recall</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Specificity</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">F1 Score</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">MCC</th>
+                    <tr className="bg-slate-100 border-b border-slate-200">
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Accuracy</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Precision</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Recall</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Specificity</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">F1 Score</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">MCC</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50">
+                    <tr className="bg-white hover:bg-slate-50/50">
                       <td className="px-4 py-3 text-sm font-mono text-slate-700">{metrics.accuracy}</td>
                       <td className="px-4 py-3 text-sm font-mono text-slate-700">{metrics.precision}</td>
                       <td className="px-4 py-3 text-sm font-mono text-slate-700">{metrics.recall}</td>
@@ -367,30 +384,30 @@ export default function Home() {
           {/* All Models Comparison */}
           {allMetrics && (
             <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h3 className="text-lg font-medium text-slate-800 mb-4">模型对比结果</h3>
-              <div className="overflow-x-auto">
+              <h3 className="text-lg font-bold text-[#8B2323] mb-4 border-l-4 border-[#8B2323] pl-3">模型对比结果</h3>
+              <div className="overflow-x-auto rounded-md border border-slate-200">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-y border-slate-200">
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">模型名称</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Accuracy</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Precision</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Recall</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">Specificity</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">F1 Score</th>
-                      <th className="px-4 py-3 text-sm font-semibold text-slate-600">MCC</th>
+                    <tr className="bg-slate-100 border-b border-slate-200">
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">模型名称</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Accuracy</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Precision</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Recall</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">Specificity</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">F1 Score</th>
+                      <th className="px-4 py-3 text-sm font-bold text-slate-700">MCC</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allMetrics.map((result, idx) => (
-                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
+                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 bg-white">
                         <td className="px-4 py-3 text-sm font-medium text-slate-800">{result.model}</td>
-                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.accuracy) === maxMetrics.accuracy ? 'text-red-600 font-bold' : 'text-slate-700'}`}>{result.metrics.accuracy}</td>
-                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.precision) === maxMetrics.precision ? 'text-red-600 font-bold' : 'text-slate-700'}`}>{result.metrics.precision}</td>
-                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.recall) === maxMetrics.recall ? 'text-red-600 font-bold' : 'text-slate-700'}`}>{result.metrics.recall}</td>
-                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.specificity) === maxMetrics.specificity ? 'text-red-600 font-bold' : 'text-slate-700'}`}>{result.metrics.specificity}</td>
-                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.f1Score) === maxMetrics.f1Score ? 'text-red-600 font-bold' : 'text-slate-700'}`}>{result.metrics.f1Score}</td>
-                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.mcc) === maxMetrics.mcc ? 'text-red-600 font-bold' : 'text-slate-700'}`}>{result.metrics.mcc}</td>
+                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.accuracy) === maxMetrics.accuracy ? 'text-[#8B2323] font-bold' : 'text-slate-700'}`}>{result.metrics.accuracy}</td>
+                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.precision) === maxMetrics.precision ? 'text-[#8B2323] font-bold' : 'text-slate-700'}`}>{result.metrics.precision}</td>
+                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.recall) === maxMetrics.recall ? 'text-[#8B2323] font-bold' : 'text-slate-700'}`}>{result.metrics.recall}</td>
+                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.specificity) === maxMetrics.specificity ? 'text-[#8B2323] font-bold' : 'text-slate-700'}`}>{result.metrics.specificity}</td>
+                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.f1Score) === maxMetrics.f1Score ? 'text-[#8B2323] font-bold' : 'text-slate-700'}`}>{result.metrics.f1Score}</td>
+                        <td className={`px-4 py-3 text-sm font-mono ${maxMetrics && parseFloat(result.metrics.mcc) === maxMetrics.mcc ? 'text-[#8B2323] font-bold' : 'text-slate-700'}`}>{result.metrics.mcc}</td>
                       </tr>
                     ))}
                   </tbody>
