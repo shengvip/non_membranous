@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, Database, Settings, BarChart2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, Database, Settings, BarChart2, CheckCircle2, AlertCircle, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as xlsx from 'xlsx';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
@@ -111,6 +111,198 @@ export default function Home() {
     }
     window.open('/data-viewer', '_blank');
   };
+
+  const handleImputeData = () => {
+    if (data.length === 0) {
+      setErrorMessage('暂无数据');
+      return;
+    }
+    
+    const newData = [...data];
+    const numericCols = new Set<string>();
+    const colValues: Record<string, any[]> = {};
+    
+    columns.forEach(col => {
+      colValues[col] = [];
+      let isNumeric = true;
+      for (let i = 0; i < newData.length; i++) {
+        const val = newData[i][col];
+        if (val !== null && val !== undefined && val !== '' && val !== 'NA' && val !== 'NaN' && val !== 'NULL' && val !== 'Null' && val !== 'N/A') {
+          colValues[col].push(val);
+          if (isNaN(Number(val))) {
+            isNumeric = false;
+          }
+        }
+      }
+      if (isNumeric && colValues[col].length > 0) {
+        numericCols.add(col);
+      }
+    });
+
+    const fillValues: Record<string, any> = {};
+    columns.forEach(col => {
+      const vals = colValues[col];
+      if (vals.length === 0) return;
+      
+      if (numericCols.has(col)) {
+        const sum = vals.reduce((acc, v) => acc + Number(v), 0);
+        fillValues[col] = sum / vals.length;
+      } else {
+        const counts: Record<string, number> = {};
+        let maxCount = 0;
+        let mode = vals[0];
+        vals.forEach(v => {
+          counts[v] = (counts[v] || 0) + 1;
+          if (counts[v] > maxCount) {
+            maxCount = counts[v];
+            mode = v;
+          }
+        });
+        fillValues[col] = mode;
+      }
+    });
+
+    for (let i = 0; i < newData.length; i++) {
+      columns.forEach(col => {
+        const val = newData[i][col];
+        if (val === null || val === undefined || val === '' || val === 'NA' || val === 'NaN' || val === 'NULL' || val === 'Null' || val === 'N/A') {
+          newData[i][col] = fillValues[col];
+        }
+      });
+    }
+
+    setData(newData);
+    try {
+      localStorage.setItem('app_data', JSON.stringify(newData));
+      setUploadStatus('success');
+      setErrorMessage('');
+    } catch (e) {
+      setErrorMessage('填充成功，但无法在本地存储中保存');
+    }
+  };
+
+  const dataStats = useMemo(() => {
+    if (data.length === 0) return null;
+
+    const missingStats: any[] = [];
+    const numericStats: any[] = [];
+    
+    const numericCols: string[] = [];
+    const colValues: Record<string, number[]> = {};
+
+    columns.forEach(col => {
+      let missingCount = 0;
+      let isNumeric = true;
+      let min = Infinity;
+      let max = -Infinity;
+      let sum = 0;
+      let validCount = 0;
+      
+      const vals: number[] = [];
+
+      data.forEach(row => {
+        const val = row[col];
+        if (val === null || val === undefined || val === '' || val === 'NA' || val === 'NaN' || val === 'NULL' || val === 'Null' || val === 'N/A') {
+          missingCount++;
+        } else {
+          const numVal = Number(val);
+          if (isNaN(numVal)) {
+            isNumeric = false;
+          } else {
+            validCount++;
+            sum += numVal;
+            if (numVal < min) min = numVal;
+            if (numVal > max) max = numVal;
+            vals.push(numVal);
+          }
+        }
+      });
+
+      missingStats.push({
+        name: col,
+        missing: missingCount
+      });
+
+      if (isNumeric && validCount > 0) {
+        numericStats.push({
+          name: col,
+          min: Number(min.toFixed(4)),
+          max: Number(max.toFixed(4)),
+          mean: Number((sum / validCount).toFixed(4))
+        });
+        numericCols.push(col);
+      }
+    });
+
+    const correlationMatrix: any[] = [];
+    const alignedNumericData: Record<string, number[]> = {};
+    numericCols.forEach(col => alignedNumericData[col] = []);
+    
+    data.forEach(row => {
+      let allValid = true;
+      const rowVals: Record<string, number> = {};
+      
+      for (const col of numericCols) {
+        const val = row[col];
+        if (val === null || val === undefined || val === '' || val === 'NA' || val === 'NaN' || val === 'NULL' || val === 'Null' || val === 'N/A') {
+          allValid = false;
+          break;
+        }
+        const numVal = Number(val);
+        if (isNaN(numVal)) {
+          allValid = false;
+          break;
+        }
+        rowVals[col] = numVal;
+      }
+      
+      if (allValid) {
+        numericCols.forEach(col => {
+          alignedNumericData[col].push(rowVals[col]);
+        });
+      }
+    });
+
+    const calcPearson = (x: number[], y: number[]) => {
+      if (x.length === 0 || y.length === 0) return 0;
+      const n = x.length;
+      const sumX = x.reduce((a, b) => a + b, 0);
+      const sumY = y.reduce((a, b) => a + b, 0);
+      const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
+      const sumX2 = x.reduce((a, b) => a + b * b, 0);
+      const sumY2 = y.reduce((a, b) => a + b * b, 0);
+      
+      const numerator = n * sumXY - sumX * sumY;
+      const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+      
+      if (denominator === 0) return 0;
+      return numerator / denominator;
+    };
+
+    numericCols.forEach((col1, i) => {
+      const rowData: any = { name: col1 };
+      numericCols.forEach((col2, j) => {
+        if (i === j) {
+          rowData[col2] = 1;
+        } else if (j < i) {
+          rowData[col2] = correlationMatrix[j][col1];
+        } else {
+          rowData[col2] = calcPearson(alignedNumericData[col1], alignedNumericData[col2]);
+        }
+      });
+      correlationMatrix.push(rowData);
+    });
+
+    missingStats.sort((a, b) => b.missing - a.missing);
+    const filteredMissingStats = missingStats.filter(stat => stat.missing > 0);
+
+    return {
+      missingStats: filteredMissingStats,
+      numericStats,
+      correlationMatrix,
+      numericCols
+    };
+  }, [data, columns]);
 
   const handleTrainModel = async (model: string) => {
     if (data.length === 0) {
@@ -323,6 +515,14 @@ export default function Home() {
               <Database className="w-5 h-5" />
               显示数据
             </button>
+
+            <button 
+              onClick={handleImputeData}
+              className="px-8 py-3.5 bg-white text-[#8B2323] border border-[#8B2323] rounded-md hover:bg-slate-50 shadow-sm hover:shadow transition-all flex items-center gap-2 font-medium"
+            >
+              <Wand2 className="w-5 h-5" />
+              缺失值填充
+            </button>
           </div>
 
           {uploadStatus === 'success' && (
@@ -391,10 +591,105 @@ export default function Home() {
             )}
 
             {!metrics && !allMetrics && trainingStatus !== 'training' && trainingStatus !== 'error' && (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4 py-20">
-                <BarChart2 className="w-16 h-16 text-slate-200" />
-                <p>请在左侧选择模型进行训练或对比</p>
-              </div>
+              data.length > 0 && dataStats ? (
+                <div className="space-y-12 animate-in fade-in duration-500">
+                  <h3 className="text-xl font-bold text-[#8B2323] border-b border-slate-100 pb-4">数据概览</h3>
+                  
+                  {/* 缺失值情况柱状图 */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-bold text-slate-800 text-center">缺失值情况柱状图</h4>
+                    {dataStats.missingStats.length > 0 ? (
+                      <div className="h-96 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={dataStats.missingStats} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                            <XAxis dataKey="name" type="category" angle={-45} textAnchor="end" tick={{ fontSize: 12 }} interval={0} />
+                            <YAxis type="number" />
+                            <RechartsTooltip formatter={(value: any) => [value, '缺失数量']} />
+                            <Bar dataKey="missing" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-48 text-slate-500 bg-slate-50 rounded-lg border border-slate-100">
+                        <CheckCircle2 className="w-5 h-5 mr-2 text-emerald-500" />
+                        当前数据没有缺失值
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 数据统计情况图 */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-bold text-slate-800 text-center">数据统计情况图</h4>
+                    <div className="h-96 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={dataStats.numericStats} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                          <XAxis type="number" domain={[0, 'dataMax']} />
+                          <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                          <RechartsTooltip />
+                          <Legend verticalAlign="top" height={36} />
+                          <Bar dataKey="min" name="最小值" fill="#10b981" radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="mean" name="平均值" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="max" name="最大值" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* 特征相关性热图 */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-bold text-slate-800 text-center">特征相关性热图</h4>
+                    <div className="overflow-x-auto">
+                      <div className="inline-block min-w-full">
+                        <table className="w-full text-center border-collapse text-xs">
+                          <thead>
+                            <tr>
+                              <th className="p-2 border border-slate-200 bg-slate-50"></th>
+                              {dataStats.numericCols.map(col => (
+                                <th key={col} className="p-2 border border-slate-200 bg-slate-50 font-medium text-slate-700" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{col}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dataStats.correlationMatrix.map((row) => (
+                              <tr key={row.name}>
+                                <th className="p-2 border border-slate-200 bg-slate-50 font-medium text-slate-700 text-right whitespace-nowrap">{row.name}</th>
+                                {dataStats.numericCols.map(col => {
+                                  const val = row[col];
+                                  let bgColor = 'white';
+                                  let textColor = 'black';
+                                  if (val !== undefined && val !== null) {
+                                    if (val > 0) {
+                                      const intensity = Math.round(val * 255);
+                                      bgColor = `rgb(${255-intensity}, ${255-intensity}, 255)`;
+                                      if (val > 0.5) textColor = 'white';
+                                    } else if (val < 0) {
+                                      const intensity = Math.round(Math.abs(val) * 255);
+                                      bgColor = `rgb(255, ${255-intensity}, ${255-intensity})`;
+                                      if (val < -0.5) textColor = 'white';
+                                    }
+                                  }
+                                  return (
+                                    <td key={col} className="p-2 border border-slate-200" style={{ backgroundColor: bgColor, color: textColor }}>
+                                      {val !== undefined && val !== null ? val.toFixed(2) : '-'}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4 py-20">
+                  <BarChart2 className="w-16 h-16 text-slate-200" />
+                  <p>请在左侧选择模型进行训练或对比</p>
+                </div>
+              )
             )}
 
             {trainingStatus === 'training' && (
@@ -476,7 +771,7 @@ export default function Home() {
               {/* SHAP Feature Importance */}
               {metrics.shapData && (
                 <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
-                  <h4 className="text-md font-bold text-slate-800 mb-4 text-center">SHAP 特征重要性排序比较图</h4>
+                  <h4 className="text-md font-bold text-slate-800 mb-4 text-center">特征重要性排序比较图</h4>
                   <div className="h-80 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={metrics.shapData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
