@@ -211,6 +211,22 @@ function generateMetricsForModel(model: string) {
       importance: (Math.random() * 0.5 + 0.1).toFixed(3)
     })).sort((a, b) => parseFloat(b.importance) - parseFloat(a.importance));
 
+    // Generate mock SHAP scatter data for the beeswarm plot
+    const shapScatterData: any[] = [];
+    shapData.forEach((sData, fIdx) => {
+      const importanceVal = parseFloat(sData.importance);
+      const correlation = fIdx % 2 === 0 ? 1 : -1;
+      for (let i = 0; i < 100; i++) {
+        const featureValue = Math.random();
+        const shapValue = (featureValue - 0.5) * 2 * importanceVal * correlation + (Math.random() - 0.5) * (importanceVal * 0.5);
+        shapScatterData.push({
+          feature: sData.feature,
+          shapValue: parseFloat(shapValue.toFixed(3)),
+          featureValue: parseFloat(featureValue.toFixed(3))
+        });
+      }
+    });
+
     return {
       accuracy: acc.toFixed(4),
       precision: (acc - 0.02 + Math.random() * 0.04).toFixed(4),
@@ -220,7 +236,8 @@ function generateMetricsForModel(model: string) {
       mcc: (acc - 0.1 + Math.random() * 0.05).toFixed(4),
       rocData,
       survivalData,
-      shapData
+      shapData,
+      shapScatterData
     };
   };
 

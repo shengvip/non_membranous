@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Database, Settings, BarChart2, CheckCircle2, AlertCircle, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as xlsx from 'xlsx';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell, ScatterChart, Scatter, ZAxis } from 'recharts';
 
 export default function Home() {
   const [data, setData] = useState<any[]>(() => {
@@ -770,23 +770,52 @@ export default function Home() {
 
               {/* SHAP Feature Importance */}
               {metrics.shapData && (
-                <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
-                  <h4 className="text-md font-bold text-slate-800 mb-4 text-center">特征重要性排序比较图</h4>
-                  <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={metrics.shapData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                        <XAxis type="number" label={{ value: 'Mean |SHAP value|', position: 'insideBottom', offset: -10 }} />
-                        <YAxis dataKey="feature" type="category" tick={{ fontSize: 12 }} width={100} />
-                        <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} />
-                        <Bar dataKey="importance" fill="#8B2323" barSize={20} radius={[0, 4, 4, 0]}>
-                          {metrics.shapData.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8B2323' : '#b91c1c'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                <div className="flex flex-col gap-8 mt-8">
+                  <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
+                    <h4 className="text-md font-bold text-slate-800 mb-4 text-center">特征重要性排序比较图</h4>
+                    <div className="h-80 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={metrics.shapData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                          <XAxis type="number" label={{ value: 'Mean |SHAP value|', position: 'insideBottom', offset: -10 }} />
+                          <YAxis dataKey="feature" type="category" tick={{ fontSize: 12 }} width={100} />
+                          <RechartsTooltip formatter={(value: any) => Number(value).toFixed(3)} />
+                          <Bar dataKey="importance" fill="#8B2323" barSize={20} radius={[0, 4, 4, 0]}>
+                            {metrics.shapData.map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8B2323' : '#b91c1c'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
+
+                  {metrics.shapScatterData && (
+                    <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
+                      <h4 className="text-md font-bold text-slate-800 mb-4 text-center">SHAP 可解释性分析图</h4>
+                      <div className="h-80 w-full relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ScatterChart margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                            <XAxis type="number" dataKey="shapValue" name="SHAP Value" label={{ value: 'SHAP value', position: 'insideBottom', offset: -10 }} />
+                            <YAxis type="category" dataKey="feature" name="Feature" tick={{ fontSize: 12 }} width={100} allowDuplicatedCategory={false} />
+                            <ZAxis type="number" dataKey="featureValue" range={[15, 15]} name="Feature Value" />
+                            <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value: any, name: string) => [value, name === 'featureValue' ? 'Feature Value' : 'SHAP Value']} />
+                            <Scatter data={metrics.shapScatterData} fill="#8884d8">
+                              {metrics.shapScatterData.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={entry.featureValue > 0.5 ? '#ef4444' : '#3b82f6'} fillOpacity={0.6} />
+                              ))}
+                            </Scatter>
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                        <div className="absolute right-4 top-0 flex flex-col items-center text-[10px] text-slate-500">
+                          <span>High</span>
+                          <div className="w-2 h-16 bg-gradient-to-b from-[#ef4444] to-[#3b82f6] rounded-full my-1"></div>
+                          <span>Low</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
