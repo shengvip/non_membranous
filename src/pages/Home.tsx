@@ -281,7 +281,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto space-y-8 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8 py-12 px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
         <header className="text-center space-y-4 mb-12">
@@ -323,13 +323,6 @@ export default function Home() {
               <Database className="w-5 h-5" />
               显示数据
             </button>
-
-            <button 
-              className="px-8 py-3.5 bg-slate-800 text-white rounded-md hover:bg-slate-900 shadow-sm hover:shadow transition-all flex items-center gap-2 font-medium"
-            >
-              <Settings className="w-5 h-5" />
-              预测建模
-            </button>
           </div>
 
           {uploadStatus === 'success' && (
@@ -348,50 +341,72 @@ export default function Home() {
         </div>
 
         {/* Models Section */}
-        <div className="bg-white p-8 rounded-xl shadow-sm border-t-4 border-t-[#8B2323] border-x border-b border-slate-200 space-y-6">
-          <h2 className="text-xl font-bold text-[#8B2323] flex items-center gap-2 border-b border-slate-100 pb-4">
-            <BarChart2 className="w-6 h-6" />
-            模型训练与评估
-          </h2>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-            {models.map(model => (
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          {/* Left Sidebar: Models */}
+          <div className="w-full lg:w-64 flex-shrink-0 bg-white p-6 rounded-xl shadow-sm border-t-4 border-t-[#8B2323] border-x border-b border-slate-200 sticky top-8">
+            <h2 className="text-lg font-bold text-[#8B2323] flex items-center gap-2 border-b border-slate-100 pb-4 mb-4">
+              <BarChart2 className="w-5 h-5" />
+              模型评估与训练
+            </h2>
+            
+            <div className="flex flex-col gap-3">
+              {models.map(model => (
+                <button
+                  key={model}
+                  onClick={() => handleTrainModel(model)}
+                  disabled={trainingStatus === 'training'}
+                  className={`px-4 py-3 rounded-md border transition-all text-sm font-medium shadow-sm text-left
+                    ${currentModel === model && trainingStatus === 'training' 
+                      ? 'bg-[#8B2323]/10 border-[#8B2323]/30 text-[#8B2323]' 
+                      : currentModel === model
+                      ? 'bg-[#8B2323]/5 border-[#8B2323] text-[#8B2323]'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-[#8B2323]/50 hover:text-[#8B2323]'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {currentModel === model && trainingStatus === 'training' ? '训练中...' : model}
+                </button>
+              ))}
+              <div className="h-px bg-slate-100 my-2"></div>
               <button
-                key={model}
-                onClick={() => handleTrainModel(model)}
+                onClick={handleCompareModels}
                 disabled={trainingStatus === 'training'}
-                className={`px-4 py-3 rounded-md border transition-all text-sm font-medium shadow-sm
-                  ${currentModel === model && trainingStatus === 'training' 
-                    ? 'bg-[#8B2323]/10 border-[#8B2323]/30 text-[#8B2323]' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-[#8B2323]/50 hover:text-[#8B2323]'
+                className={`px-4 py-3 rounded-md border transition-all text-sm font-medium shadow-sm text-center
+                  ${currentModel === '模型对比' && trainingStatus === 'training' 
+                    ? 'bg-[#8B2323] border-[#8B2323] text-white' 
+                    : 'bg-[#8B2323] border-[#8B2323] text-white hover:bg-[#7A1E1E] hover:border-[#7A1E1E]'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {currentModel === model && trainingStatus === 'training' ? '训练中...' : model}
+                {currentModel === '模型对比' && trainingStatus === 'training' ? '评估中...' : '模型对比'}
               </button>
-            ))}
-            <button
-              onClick={handleCompareModels}
-              disabled={trainingStatus === 'training'}
-              className={`px-4 py-3 rounded-md border transition-all text-sm font-medium shadow-sm
-                ${currentModel === '模型对比' && trainingStatus === 'training' 
-                  ? 'bg-[#8B2323] border-[#8B2323] text-white' 
-                  : 'bg-[#8B2323] border-[#8B2323] text-white hover:bg-[#7A1E1E] hover:border-[#7A1E1E]'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {currentModel === '模型对比' && trainingStatus === 'training' ? '评估中...' : '模型对比'}
-            </button>
+            </div>
           </div>
 
-          {trainingStatus === 'error' && (
-            <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-3 rounded-lg mt-4">
-              <AlertCircle className="w-5 h-5" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
+          {/* Main Content: Results */}
+          <div className="flex-1 w-full bg-white p-8 rounded-xl shadow-sm border-t-4 border-t-[#8B2323] border-x border-b border-slate-200 min-h-[500px]">
+            {trainingStatus === 'error' && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-3 rounded-lg mb-6">
+                <AlertCircle className="w-5 h-5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
-          {/* Single Model Metrics */}
-          {metrics && (
-            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+            {!metrics && !allMetrics && trainingStatus !== 'training' && trainingStatus !== 'error' && (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4 py-20">
+                <BarChart2 className="w-16 h-16 text-slate-200" />
+                <p>请在左侧选择模型进行训练或对比</p>
+              </div>
+            )}
+
+            {trainingStatus === 'training' && (
+              <div className="h-full flex flex-col items-center justify-center text-[#8B2323] space-y-4 py-20">
+                <div className="w-12 h-12 border-4 border-[#8B2323]/30 border-t-[#8B2323] rounded-full animate-spin" />
+                <p>正在训练与评估模型，请稍候...</p>
+              </div>
+            )}
+
+            {/* Single Model Metrics */}
+            {metrics && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
               <h3 className="text-lg font-bold text-[#8B2323] mb-4 border-l-4 border-[#8B2323] pl-3">{currentModel} 模型评估与可解释性分析</h3>
               <div className="overflow-x-auto rounded-md border border-slate-200 mb-8">
                 <table className="w-full text-left border-collapse">
@@ -484,7 +499,7 @@ export default function Home() {
 
           {/* All Models Comparison */}
           {allMetrics && (
-            <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <h3 className="text-lg font-bold text-[#8B2323] mb-4 border-l-4 border-[#8B2323] pl-3">模型对比结果</h3>
               <div className="overflow-x-auto rounded-md border border-slate-200">
                 <table className="w-full text-left border-collapse">
@@ -560,6 +575,7 @@ export default function Home() {
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
