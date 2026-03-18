@@ -773,7 +773,7 @@ export default function Home() {
                 <div className="flex flex-col gap-8 mt-8">
                   <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
                     <h4 className="text-md font-bold text-slate-800 mb-4 text-center">特征重要性排序比较图</h4>
-                    <div className="h-80 w-full">
+                    <div className="w-full" style={{ height: Math.max(320, metrics.shapData.length * 30) + 'px' }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={metrics.shapData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
@@ -793,7 +793,7 @@ export default function Home() {
                   {metrics.shapScatterData && (
                     <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full">
                       <h4 className="text-md font-bold text-slate-800 mb-4 text-center">SHAP 可解释性分析图</h4>
-                      <div className="h-80 w-full relative">
+                      <div className="w-full relative" style={{ height: Math.max(320, metrics.shapData.length * 30) + 'px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />

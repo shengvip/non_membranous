@@ -149,7 +149,7 @@ app.post('/api/train', (req, res) => {
 
   // Simulate training delay
   setTimeout(() => {
-    const metrics = generateMetricsForModel(model);
+    const metrics = generateMetricsForModel(model, currentColumns);
     res.json({ model, metrics, message: 'Data preprocessed (missing values replaced with mode) and model trained successfully.' });
   }, 1500);
 });
@@ -173,13 +173,13 @@ app.post('/api/train-all', (req, res) => {
     const models = ['XGBoost', 'CatBoost', 'random forest', 'decision tree', 'Elastic Net', 'LightGBM', '人工神经网络'];
     const results = models.map(model => ({
       model,
-      metrics: generateMetricsForModel(model)
+      metrics: generateMetricsForModel(model, currentColumns)
     }));
     res.json({ results, message: 'Data preprocessed (missing values replaced with mode) and all models trained successfully.' });
   }, 3000);
 });
 
-function generateMetricsForModel(model: string) {
+function generateMetricsForModel(model: string, columns: string[] = []) {
   const generateMetrics = (baseAcc: number) => {
     const variance = 0.05;
     const acc = baseAcc + (Math.random() * variance - variance / 2);
@@ -205,7 +205,7 @@ function generateMetricsForModel(model: string) {
     }
 
     // Generate mock SHAP feature importance data
-    const features = ['Age', 'eGFR', 'Proteinuria', 'Blood Pressure', 'Hemoglobin', 'Serum Albumin', 'Cholesterol', 'Uric Acid'];
+    const features = columns.length > 0 ? columns.filter(c => c !== 'level') : ['Age', 'eGFR', 'Proteinuria', 'Blood Pressure', 'Hemoglobin', 'Serum Albumin', 'Cholesterol', 'Uric Acid'];
     const shapData = features.map(feature => ({
       feature,
       importance: (Math.random() * 0.5 + 0.1).toFixed(3)
