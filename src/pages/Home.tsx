@@ -919,44 +919,42 @@ export default function Home() {
               {metrics.shapScatterData && (
                 <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full mt-8">
                   <h4 className="text-md font-bold text-slate-800 mb-4 text-center">SHAP 交互效应图 (SHAP Interaction Effect)</h4>
-                  <div className="flex flex-col md:flex-row gap-4 h-96">
-                    {/* Left side: Feature list */}
-                    <div className="w-full md:w-1/4 border-r border-slate-200 pr-2 overflow-y-auto">
-                      <div className="text-xs text-slate-500 mb-2">请选择两个特征：</div>
-                      <ul className="space-y-1">
-                        {metrics.shapData.map((sData: any) => {
-                          const isSelected = interactionFeatures.includes(sData.feature);
-                          const selectionIndex = interactionFeatures.indexOf(sData.feature);
-                          return (
-                            <li key={sData.feature}>
-                              <button
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setInteractionFeatures(interactionFeatures.filter(f => f !== sData.feature));
-                                  } else {
-                                    if (interactionFeatures.length < 2) {
-                                      setInteractionFeatures([...interactionFeatures, sData.feature]);
-                                    } else {
-                                      setInteractionFeatures([interactionFeatures[1], sData.feature]);
-                                    }
-                                  }
-                                }}
-                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex justify-between items-center ${isSelected ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
-                              >
-                                <span>{sData.feature}</span>
-                                {isSelected && (
-                                  <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
-                                    {selectionIndex + 1}
-                                  </span>
-                                )}
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                  <div className="flex flex-col gap-4 h-[28rem]">
+                    {/* Top side: Dropdowns */}
+                    <div className="flex justify-center items-center gap-6 mb-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-slate-700">特征 1 (X轴):</label>
+                        <select
+                          className="border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={interactionFeatures[0] || ''}
+                          onChange={(e) => {
+                            const newF1 = e.target.value;
+                            setInteractionFeatures([newF1, interactionFeatures[1] || metrics.shapData[1]?.feature || '']);
+                          }}
+                        >
+                          {metrics.shapData.map((sData: any) => (
+                            <option key={sData.feature} value={sData.feature}>{sData.feature}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-slate-700">特征 2 (颜色):</label>
+                        <select
+                          className="border border-slate-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={interactionFeatures[1] || ''}
+                          onChange={(e) => {
+                            const newF2 = e.target.value;
+                            setInteractionFeatures([interactionFeatures[0] || metrics.shapData[0]?.feature || '', newF2]);
+                          }}
+                        >
+                          {metrics.shapData.map((sData: any) => (
+                            <option key={sData.feature} value={sData.feature}>{sData.feature}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    {/* Right side: Curve */}
-                    <div className="w-full md:w-3/4 h-full relative">
+                    {/* Bottom side: Curve */}
+                    <div className="w-full h-full relative">
                       {interactionFeatures.length === 2 ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 5, right: 30, bottom: 15, left: 10 }}>
@@ -984,7 +982,7 @@ export default function Home() {
                           </ScatterChart>
                         </ResponsiveContainer>
                       ) : (
-                        <div className="flex items-center justify-center h-full text-slate-400">请在左侧选择 2 个特征</div>
+                        <div className="flex items-center justify-center h-full text-slate-400">请在上方选择 2 个特征</div>
                       )}
                       
                       {interactionFeatures.length === 2 && (
