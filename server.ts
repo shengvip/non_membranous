@@ -226,6 +226,7 @@ function generateMetricsForModel(model: string, columns: string[] = []) {
         // Add random jitter between -0.3 and 0.3
         const jitter = (Math.random() - 0.5) * 0.6;
         shapScatterData.push({
+          instanceId: i,
           feature: sData.feature,
           featureIndex: fIdx,
           shapValue: parseFloat(shapValue.toFixed(3)),

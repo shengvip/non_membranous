@@ -27,6 +27,7 @@ export default function Home() {
   const [trainingStatus, setTrainingStatus] = useState<'idle' | 'training' | 'success' | 'error'>('idle');
   const [currentModel, setCurrentModel] = useState<string>('');
   const [selectedDoseFeature, setSelectedDoseFeature] = useState<string>('');
+  const [interactionFeatures, setInteractionFeatures] = useState<string[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -338,6 +339,11 @@ export default function Home() {
         setMetrics(result.metrics);
         if (result.metrics.shapData && result.metrics.shapData.length > 0) {
           setSelectedDoseFeature(result.metrics.shapData[0].feature);
+          if (result.metrics.shapData.length > 1) {
+            setInteractionFeatures([result.metrics.shapData[0].feature, result.metrics.shapData[1].feature]);
+          } else {
+            setInteractionFeatures([result.metrics.shapData[0].feature]);
+          }
         }
         setTrainingStatus('success');
       } else {
@@ -458,6 +464,30 @@ export default function Home() {
     'LightGBM': '#ec4899',
     '人工神经网络': '#64748b'
   };
+
+  const interactionData = useMemo(() => {
+    if (!metrics?.shapScatterData || interactionFeatures.length !== 2) return [];
+    const [f1, f2] = interactionFeatures;
+    const f1Data = metrics.shapScatterData.filter((d: any) => d.feature === f1);
+    const f2Data = metrics.shapScatterData.filter((d: any) => d.feature === f2);
+    
+    const data = [];
+    for (let i = 0; i < f1Data.length; i++) {
+      const d1 = f1Data[i];
+      const d2 = f2Data.find((d: any) => d.instanceId === d1.instanceId);
+      if (d2) {
+        // Mock interaction value: proportional to the product of their deviations from 0.5
+        const interactionVal = (d1.featureValue - 0.5) * (d2.featureValue - 0.5) * 2;
+        data.push({
+          f1Value: d1.featureValue,
+          f2Value: d2.featureValue,
+          interactionValue: interactionVal,
+          instanceId: d1.instanceId
+        });
+      }
+    }
+    return data;
+  }, [metrics?.shapScatterData, interactionFeatures]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -879,6 +909,90 @@ export default function Home() {
                         </ResponsiveContainer>
                       ) : (
                         <div className="flex items-center justify-center h-full text-slate-400">请选择左侧特征</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Interaction Effect Plot */}
+              {metrics.shapScatterData && (
+                <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full mt-8">
+                  <h4 className="text-md font-bold text-slate-800 mb-4 text-center">SHAP 交互效应图 (SHAP Interaction Effect)</h4>
+                  <div className="flex flex-col md:flex-row gap-4 h-96">
+                    {/* Left side: Feature list */}
+                    <div className="w-full md:w-1/4 border-r border-slate-200 pr-2 overflow-y-auto">
+                      <div className="text-xs text-slate-500 mb-2">请选择两个特征：</div>
+                      <ul className="space-y-1">
+                        {metrics.shapData.map((sData: any) => {
+                          const isSelected = interactionFeatures.includes(sData.feature);
+                          const selectionIndex = interactionFeatures.indexOf(sData.feature);
+                          return (
+                            <li key={sData.feature}>
+                              <button
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setInteractionFeatures(interactionFeatures.filter(f => f !== sData.feature));
+                                  } else {
+                                    if (interactionFeatures.length < 2) {
+                                      setInteractionFeatures([...interactionFeatures, sData.feature]);
+                                    } else {
+                                      setInteractionFeatures([interactionFeatures[1], sData.feature]);
+                                    }
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex justify-between items-center ${isSelected ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
+                              >
+                                <span>{sData.feature}</span>
+                                {isSelected && (
+                                  <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
+                                    {selectionIndex + 1}
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                    {/* Right side: Curve */}
+                    <div className="w-full md:w-3/4 h-full relative">
+                      {interactionFeatures.length === 2 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ScatterChart margin={{ top: 5, right: 30, bottom: 15, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="f1Value" type="number" name={interactionFeatures[0]} label={{ value: interactionFeatures[0], position: 'insideBottom', offset: -10 }} />
+                            <YAxis dataKey="interactionValue" type="number" name="SHAP Interaction Value" label={{ value: 'SHAP Interaction Value', angle: -90, position: 'insideLeft' }} />
+                            <ZAxis dataKey="f2Value" type="number" range={[15, 15]} name={interactionFeatures[1]} />
+                            <RechartsTooltip 
+                              cursor={{ strokeDasharray: '3 3' }} 
+                              formatter={(value: any, name: string) => {
+                                if (name === 'f1Value') return [Number(value).toFixed(3), interactionFeatures[0]];
+                                if (name === 'f2Value') return [Number(value).toFixed(3), interactionFeatures[1]];
+                                return [Number(value).toFixed(3), 'SHAP Interaction Value'];
+                              }} 
+                            />
+                            <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" />
+                            <Scatter data={interactionData}>
+                              {interactionData.map((entry: any, index: number) => {
+                                const r = Math.round(59 + (239 - 59) * entry.f2Value);
+                                const g = Math.round(130 + (68 - 130) * entry.f2Value);
+                                const b = Math.round(246 + (68 - 246) * entry.f2Value);
+                                return <Cell key={`cell-${index}`} fill={`rgb(${r}, ${g}, ${b})`} fillOpacity={0.8} />;
+                              })}
+                            </Scatter>
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-slate-400">请在左侧选择 2 个特征</div>
+                      )}
+                      
+                      {interactionFeatures.length === 2 && (
+                        <div className="absolute right-4 top-0 flex flex-col items-center text-[10px] text-slate-500">
+                          <span className="mb-1">{interactionFeatures[1]} High</span>
+                          <div className="w-2 h-16 bg-gradient-to-b from-[#ef4444] to-[#3b82f6] rounded-full my-1"></div>
+                          <span>Low</span>
+                        </div>
                       )}
                     </div>
                   </div>
