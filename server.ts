@@ -209,22 +209,45 @@ function generateMetricsForModel(model: string, columns: string[] = []) {
     const shapData = features.map(feature => ({
       feature,
       importance: (Math.random() * 0.5 + 0.1).toFixed(3)
-    })).sort((a, b) => parseFloat(b.importance) - parseFloat(a.importance));
+    })).sort((a, b) => parseFloat(b.importance) - parseFloat(a.importance)).slice(0, 20);
 
     // Generate mock SHAP scatter data for the beeswarm plot
     const shapScatterData: any[] = [];
+    const numFeatures = shapData.length;
     shapData.forEach((sData, fIdx) => {
       const importanceVal = parseFloat(sData.importance);
       const correlation = fIdx % 2 === 0 ? 1 : -1;
       for (let i = 0; i < 100; i++) {
         const featureValue = Math.random();
         const shapValue = (featureValue - 0.5) * 2 * importanceVal * correlation + (Math.random() - 0.5) * (importanceVal * 0.5);
+        // Calculate a jittered Y value. Most important (fIdx=0) should be at the top.
+        // In Recharts, higher Y values are at the top.
+        const baseY = numFeatures - fIdx - 1;
+        // Add random jitter between -0.3 and 0.3
+        const jitter = (Math.random() - 0.5) * 0.6;
         shapScatterData.push({
           feature: sData.feature,
+          featureIndex: fIdx,
           shapValue: parseFloat(shapValue.toFixed(3)),
-          featureValue: parseFloat(featureValue.toFixed(3))
+          featureValue: parseFloat(featureValue.toFixed(3)),
+          jitteredY: baseY + jitter
         });
       }
+    });
+
+    // Generate mock dose-response data for all features
+    const doseResponseData: Record<string, any[]> = {};
+    features.forEach((feature, fIdx) => {
+      const curveData = [];
+      const isPositive = fIdx % 2 === 0;
+      const baseEffect = Math.random() * 5;
+      for (let i = 0; i <= 20; i++) {
+        const x = i * 5; // 0 to 100
+        const noise = (Math.random() - 0.5) * 0.5;
+        const y = isPositive ? (Math.log(x + 1) * 1.5 + baseEffect + noise) : (10 - Math.log(x + 1) * 1.5 + baseEffect + noise);
+        curveData.push({ value: x, effect: parseFloat(y.toFixed(2)) });
+      }
+      doseResponseData[feature] = curveData;
     });
 
     return {
@@ -237,7 +260,8 @@ function generateMetricsForModel(model: string, columns: string[] = []) {
       rocData,
       survivalData,
       shapData,
-      shapScatterData
+      shapScatterData,
+      doseResponseData
     };
   };
 

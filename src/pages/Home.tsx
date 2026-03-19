@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, Database, Settings, BarChart2, CheckCircle2, AlertCircle, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as xlsx from 'xlsx';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
 
 export default function Home() {
   const [data, setData] = useState<any[]>(() => {
@@ -26,6 +26,7 @@ export default function Home() {
   const [allMetrics, setAllMetrics] = useState<any[] | null>(null);
   const [trainingStatus, setTrainingStatus] = useState<'idle' | 'training' | 'success' | 'error'>('idle');
   const [currentModel, setCurrentModel] = useState<string>('');
+  const [selectedDoseFeature, setSelectedDoseFeature] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -335,6 +336,9 @@ export default function Home() {
 
       if (response.ok) {
         setMetrics(result.metrics);
+        if (result.metrics.shapData && result.metrics.shapData.length > 0) {
+          setSelectedDoseFeature(result.metrics.shapData[0].feature);
+        }
         setTrainingStatus('success');
       } else {
         setTrainingStatus('error');
@@ -796,15 +800,36 @@ export default function Home() {
                       <div className="w-full relative" style={{ height: Math.max(320, metrics.shapData.length * 30) + 'px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <ScatterChart margin={{ top: 5, right: 30, left: 80, bottom: 15 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                            <XAxis type="number" dataKey="shapValue" name="SHAP Value" label={{ value: 'SHAP value', position: 'insideBottom', offset: -10 }} />
-                            <YAxis type="category" dataKey="feature" name="Feature" tick={{ fontSize: 12 }} width={100} allowDuplicatedCategory={false} />
-                            <ZAxis type="number" dataKey="featureValue" range={[15, 15]} name="Feature Value" />
-                            <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value: any, name: string) => [value, name === 'featureValue' ? 'Feature Value' : 'SHAP Value']} />
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                            <XAxis type="number" dataKey="shapValue" name="SHAP Value" label={{ value: 'SHAP value (impact on model output)', position: 'insideBottom', offset: -10 }} tick={{ fontSize: 12 }} />
+                            <YAxis 
+                              type="number" 
+                              dataKey="jitteredY" 
+                              name="Feature" 
+                              tick={{ fontSize: 12 }} 
+                              width={100} 
+                              domain={[-0.5, metrics.shapData.length - 0.5]}
+                              ticks={Array.from({ length: metrics.shapData.length }, (_, i) => i)}
+                              tickFormatter={(val) => metrics.shapData[metrics.shapData.length - 1 - val]?.feature || ''}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <ZAxis type="number" dataKey="featureValue" range={[12, 12]} name="Feature Value" />
+                            <RechartsTooltip 
+                              cursor={{ strokeDasharray: '3 3' }} 
+                              formatter={(value: any, name: string, props: any) => {
+                                if (name === 'Feature') return [props?.payload?.feature || value, 'Feature'];
+                                return [Number(value).toFixed(3), name];
+                              }} 
+                            />
+                            <ReferenceLine x={0} stroke="#94a3b8" strokeWidth={1} />
                             <Scatter data={metrics.shapScatterData} fill="#8884d8">
-                              {metrics.shapScatterData.map((entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={entry.featureValue > 0.5 ? '#ef4444' : '#3b82f6'} fillOpacity={0.6} />
-                              ))}
+                              {metrics.shapScatterData.map((entry: any, index: number) => {
+                                const r = Math.round(59 + (239 - 59) * entry.featureValue);
+                                const g = Math.round(130 + (68 - 130) * entry.featureValue);
+                                const b = Math.round(246 + (68 - 246) * entry.featureValue);
+                                return <Cell key={`cell-${index}`} fill={`rgb(${r}, ${g}, ${b})`} fillOpacity={0.8} />;
+                              })}
                             </Scatter>
                           </ScatterChart>
                         </ResponsiveContainer>
@@ -816,6 +841,47 @@ export default function Home() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Dose-Response Curve */}
+              {metrics.shapScatterData && (
+                <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm w-full mt-8">
+                  <h4 className="text-md font-bold text-slate-800 mb-4 text-center">特征剂量反应关系曲线 (SHAP Dependence)</h4>
+                  <div className="flex flex-col md:flex-row gap-4 h-96">
+                    {/* Left side: Feature list */}
+                    <div className="w-full md:w-1/4 border-r border-slate-200 pr-2 overflow-y-auto">
+                      <ul className="space-y-1">
+                        {metrics.shapData.map((sData: any) => (
+                          <li key={sData.feature}>
+                            <button
+                              onClick={() => setSelectedDoseFeature(sData.feature)}
+                              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedDoseFeature === sData.feature ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
+                            >
+                              {sData.feature}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {/* Right side: Curve */}
+                    <div className="w-full md:w-3/4 h-full relative">
+                      {selectedDoseFeature ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ScatterChart margin={{ top: 5, right: 20, bottom: 15, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="featureValue" type="number" name="Feature Value" label={{ value: 'Feature Value', position: 'insideBottom', offset: -10 }} />
+                            <YAxis dataKey="shapValue" type="number" name="SHAP Value" label={{ value: 'SHAP Value', angle: -90, position: 'insideLeft' }} />
+                            <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value: any, name: string) => [Number(value).toFixed(3), name === 'featureValue' ? 'Feature Value' : 'SHAP Value']} />
+                            <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 3" />
+                            <Scatter data={metrics.shapScatterData.filter((d: any) => d.feature === selectedDoseFeature)} fill="#3b82f6" />
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-slate-400">请选择左侧特征</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
